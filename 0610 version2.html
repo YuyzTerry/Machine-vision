@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>機器視覺識別整合平台 | Machine Vision Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #333;
+    }
+    #controls {
+      margin: 10px 0;
+    }
+    button {
+      padding: 6px 16px;
+      margin: 0 5px;
+      cursor: pointer;
+    }
+    canvas {
+      max-width: 100%;
+    }
+    </style>
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        [x-cloak] { display: none !important; }
+        /* 確保 MathJax 公式在深色模式下的顏色為白色 */
+        .mjx-chtml, .MathJax { color: #f1f5f9 !important; outline: none; }
+    </style>
+</head>
+<body class="text-slate-200 antialiased" x-data="{ page: 'home' }">
+
+    <nav class="fixed top-0 w-full z-50 p-4">
+        <div class="max-w-6xl mx-auto glass rounded-2xl px-6 py-3 flex justify-between items-center shadow-2xl">
+            <div class="flex items-center space-x-2 cursor-pointer" @click="page = 'home'">
+                <div class="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center animate-pulse">
+                    <span class="text-white font-bold text-xs">MV</span>
+                </div>
+                <span class="font-bold tracking-tight text-xl">VISION<span class="text-sky-500 text-sm ml-1">LAB</span></span>
+            </div>
+            
+            <div class="hidden md:flex space-x-8 font-medium text-sm uppercase tracking-widest">
+                <button @click="page = 'home'" :class="page === 'home' ? 'text-sky-400' : 'hover:text-sky-400 transition'">首頁</button>
+                <button @click="page = 'acquisition'" :class="page === 'acquisition' ? 'text-sky-400' : 'hover:text-sky-400 transition'">取像模組</button>
+                <button @click="page = 'pre-processing'" :class="page === 'pre-processing' ? 'text-sky-400' : 'hover:text-sky-400 transition'">影像前處理</button>
+                <button @click="page = 'post-processing'" :class="page === 'post-processing' ? 'text-sky-400' : 'hover:text-sky-400 transition'">影像後處理</button>
+                <button @click="page = 'project'" :class="page === 'project' ? 'text-sky-400' : 'hover:text-sky-400 transition'">專題報告</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-32 pb-20 max-w-6xl mx-auto px-6">
+
+        <section x-show="page === 'home'" x-cloak x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-8">
+            <div class="text-center mb-16">
+                <h1 class="text-5xl md:text-7xl font-bold mb-6 italic tracking-tighter">
+                    解構 <span class="gradient-text">機器視覺</span> 的奧秘
+                </h1>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                    本網頁整合了 114 學年度機器視覺檢測課程之核心技術，涵蓋從光學取像硬體到演算法處理的完整知識體系。
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <template x-for="item in [
+                    {id: 'acquisition', title: '取像模組', desc: '硬體與光學系統的精密配合', icon: '📷'},
+                    {id: 'pre-processing', title: '影像前處理', desc: '基於適用場景強化影像', icon: '🧠'},
+                    {id: 'post-processing', title: '影像後處理', desc: '影像分割、特徵萃取與形態學演算法', icon: '📲'},
+                    {id: 'project', title: '專題報告', desc: '實戰應用與技術整合展現', icon: '🚀'}
+                ]">
+                    <div @click="page = item.id" class="glass p-8 rounded-3xl hover:border-sky-500/50 transition-all cursor-pointer group hover:-translate-y-2">
+                        <div class="text-4xl mb-4 group-hover:scale-110 transition-transform" x-text="item.icon"></div>
+                        <h3 class="text-xl font-bold mb-2 text-white" x-text="item.title"></h3>
+                        <p class="text-slate-400 text-sm" x-text="item.desc"></p>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <section x-show="page === 'acquisition'" x-cloak x-transition:enter="transition ease-out duration-500">
+            <div class="flex items-center space-x-4 mb-10">
+                <h2 class="text-3xl font-bold">取像模組</h2>
+                <div class="h-[1px] flex-grow bg-slate-800"></div>
+                <span class="text-sky-500 font-mono">01 / HARDWARE</span>
+            </div>
+            
+            <div class="grid md:grid-cols-5 gap-8 items-start">
+                <div class="space-y-6 md:col-span-2">
+                    <div class="glass p-6 rounded-2xl hover:border-sky-500/50 transition-all">
+                        <h4 class="text-sky-400 font-bold mb-2">相機與鏡頭的搭配</h4>
+                        <p class="text-sm text-slate-300">核心為模仿人類視覺的光學成像邏輯。重點在於滿足匹配原則，確保相機矩形感光元件的對角線小於鏡頭的圓形成像範圍 (Image Circle) 以避免畫面出現黑邊，並依據成像公式計算與調整放大倍率及視野 (FOV)。</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl hover:border-sky-500/50 transition-all">
+                        <h4 class="text-sky-400 font-bold mb-2">鏡頭規格及選用</h4>
+                        <p class="text-sm text-slate-300">涵蓋 C/CS mount 接口規則及焦距、倍率、光圈與工作距離等光學參數。利用相似三角形原理計算焦距，並理解倍率與視野的反比關係。實務上可透過近攝接寫環改變成像距離來實現微距拍攝。</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl hover:border-sky-500/50 transition-all">
+                        <h4 class="text-sky-400 font-bold mb-2">光源與照明設計</h4>
+                        <p class="text-sm text-slate-300">良好的照明能凸顯物件特徵並壓抑背景雜訊，決定瑕疵是否清晰可見。工業界以 LED 燈為主流，具備效率高、耗電低且可閃頻等優點。主要分為三大照明方式：明視野(呈現反射率差異)、暗視野(呈現散射差異，瑕疵/刮痕更明顯)與穿透光(適用透明材質)。</p>
+                    </div>
+                    <div class="glass p-6 rounded-2xl hover:border-sky-500/50 transition-all">
+                        <h4 class="text-sky-400 font-bold mb-2">取像參數的選用</h4>
+                        <p class="text-sm text-slate-300">三大核心包含：光圈(控制進光量與景深，F4~F8 畫質最穩)、曝光時間(物體移動快需縮短避免模糊) 與增益(越大畫面越亮但雜訊越多)。拍攝的黃金原則為「對焦清晰、寧可稍暗絕不過曝」，應優先調整光圈與曝光，最後亮度不足時才提高增益。</p>
+                    </div>
+                </div>
+                
+                <div class="md:col-span-3 glass rounded-3xl p-8 relative overflow-hidden border border-slate-800">
+                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <h3 class="text-xl font-bold mb-8 text-white flex items-center space-x-2">
+                        <span class="p-1.5 bg-sky-500/20 text-sky-400 rounded-lg text-sm">🧠</span>
+                        <span>光學取像系統：選型思維心智圖</span>
+                    </h3>
+                    
+                    <div class="flex flex-col items-center space-y-6 relative">
+                        <div class="w-full max-w-md bg-slate-900/90 border border-sky-500/40 p-4 rounded-xl shadow-lg relative group hover:border-sky-400 transition-colors">
+                            <div class="absolute -top-2.5 left-6 bg-sky-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow">STEP 1</div>
+                            <h5 class="text-sky-400 font-bold text-sm mb-1">視野幅與量測精度需求 (FOV & Resolution)</h5>
+                            <p class="text-xs text-slate-400">依據待測物體外觀尺寸決定所需 **FOV**；依據製程瑕疵或精度要求（如 0.05 mm）決定**空間解析度**。</p>
+                        </div>
+                        
+                        <div class="h-6 w-0.5 bg-gradient-to-b from-sky-500 to-indigo-500 relative">
+                            <div class="absolute -bottom-1 -left-[3px] w-2 h-2 border-r border-b border-indigo-500 rotate-45"></div>
+                        </div>
+                        
+                        <div class="w-full max-w-md bg-slate-900/90 border border-indigo-500/30 p-4 rounded-xl shadow-lg relative group hover:border-indigo-400 transition-colors">
+                            <div class="absolute -top-2.5 left-6 bg-indigo-500 text-white font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow">STEP 2</div>
+                            <h5 class="text-indigo-400 font-bold text-sm mb-1">相機畫素與 CMOS 感光元件選定</h5>
+                            <p class="text-xs text-slate-400">計算公式：*(FOV / 精度需求) × 2 (安全係數)* 得到所需最小畫素。進而挑選合適的相機，並確定其 **CMOS 尺寸**（如 1/2"、2/3"）。</p>
+                        </div>
+                        
+                        <div class="h-6 w-0.5 bg-gradient-to-b from-indigo-500 to-emerald-500 relative">
+                            <div class="absolute -bottom-1 -left-[3px] w-2 h-2 border-r border-b border-emerald-500 rotate-45"></div>
+                        </div>
+                        
+                        <div class="w-full max-w-md bg-slate-900/90 border border-emerald-500/30 p-4 rounded-xl shadow-lg relative group hover:border-emerald-400 transition-colors">
+                            <div class="absolute -top-2.5 left-6 bg-emerald-500 text-slate-950 font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow">STEP 3</div>
+                            <h5 class="text-emerald-400 font-bold text-sm mb-1">計算光學放大倍率 (Magnification)</h5>
+                            <div class="text-xs text-slate-400">
+                                利用匹配原則公式求出倍率 $\alpha$：
+                                <div class="my-2 text-center text-sm font-semibold text-emerald-300">
+                                    $$\alpha = \frac{\text{CMOS 尺寸 } (d)}{\text{視野範圍 FOV } (D)}$$
+                                </div>
+                                確保圓形 Image Circle 完整包覆 CMOS 以免產生黑邊。
+                            </div>
+                        </div>
+                        
+                        <div class="h-6 w-0.5 bg-gradient-to-b from-emerald-500 to-pink-500 relative">
+                            <div class="absolute -bottom-1 -left-[3px] w-2 h-2 border-r border-b border-pink-500 rotate-45"></div>
+                        </div>
+                        
+                        <div class="w-full max-w-md bg-slate-900/90 border border-pink-500/40 p-4 rounded-xl shadow-lg relative group hover:border-pink-400 transition-colors">
+                            <div class="absolute -top-2.5 left-6 bg-pink-500 text-white font-mono font-bold text-[10px] px-2 py-0.5 rounded shadow">STEP 4</div>
+                            <h5 class="text-pink-400 font-bold text-sm mb-1">評估工作距離 (WD) 並決定鏡頭焦距</h5>
+                            <div class="text-xs text-slate-400">
+                                考量機台物理空間限制確定 **工作距離 (WD)**。最後利用相似三角形公式：
+                                <div class="my-2 text-center text-sm font-semibold text-pink-300">
+                                    $$\frac{\text{成像高 } (d)}{\text{物體高 } (D)} = \frac{\text{焦距 } (f)}{\text{工作距離 } (WD)}$$
+                                </div>
+                                計算並推導出最終所需的**鏡頭焦距 $f$**（如 16mm、25mm）。
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-4 border-t border-slate-800/60 text-center">
+                        <p class="text-[11px] text-slate-500 font-mono">💡 選型金律：確認環境物理限制 (WD) ➡️ 推算光學幾何比例 ➡️ 決定硬體型號</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section x-show="page === 'pre-processing'" x-cloak x-transition:enter="transition ease-out duration-500">
+            <div class="flex items-center space-x-4 mb-10">
+                <h2 class="text-3xl font-bold">影像前處理與強化演算法</h2>
+                <div class="h-[1px] flex-grow bg-slate-800"></div>
+                <span class="text-emerald-500 font-mono">02 / ALGORITHM_A</span>
+            </div>
+
+            <div class="mb-12">
+                <div class="glass p-8 rounded-3xl flex flex-col md:flex-row gap-8 items-center">
+                    <div class="w-full md:w-1/2">
+                        <div class="aspect-video bg-black rounded-xl border border-slate-700 relative overflow-hidden group">
+                            <div class="absolute top-2 left-2 bg-black/50 px-2 py-1 rounded text-xs text-emerald-400 border border-emerald-500/30">Enhancement Result</div>
+                            <img src="https://images.unsplash.com/photo-1555255707-c07966088b7b?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover opacity-50 mix-blend-luminosity">
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2 space-y-4">
+                        <h3 class="text-2xl font-bold italic gradient-text">數位濾波與特徵增強</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            機器視覺取像時常受環境光、雜訊及硬體限制干擾。透過影像前處理技術，我們能在點運算與局部空間中過濾背景雜訊、調整灰階對比、並最大化特徵邊緣資訊，為後續的量測、分割與形態學辨識打下堅實基礎。
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-slate-800 rounded-full text-xs text-sky-400 border border-sky-900">強度轉換</span>
+                            <span class="px-3 py-1 bg-slate-800 rounded-full text-xs text-sky-400 border border-sky-900">影像空間濾波器</span>
+                            <span class="px-3 py-1 bg-slate-800 rounded-full text-xs text-sky-400 border border-sky-900">影像頻率濾波器</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-12">
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-emerald-400 text-xl">✨</span>
+                    <h3 class="text-xl font-bold text-white">一、 強度轉換 (Intensity Transformations)</h3>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="glass p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-emerald-400 font-bold text-base">1. 影像反相 (Negatives)</h4>
+                                <span class="bg-emerald-950 text-emerald-400 font-mono text-[10px] px-2 py-0.5 rounded">Invert</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                                將影像的灰階度進行反轉。此技術特別適用於增強嵌入在影像大面積暗色區域中的白色或淺色細節（如乳房攝影、工業內部膠路檢查）。
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-300">
+                            $$s = L - 1 - r$$
+                            <span class="text-[10px] text-slate-500 block mt-1">($L$ 為影像最大灰階級數，如 256)</span>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-emerald-400 font-bold text-base">2. 對數轉換 (Log)</h4>
+                                <span class="bg-emerald-950 text-emerald-400 font-mono text-[10px] px-2 py-0.5 rounded">Dynamic Range</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                                將輸入中較窄範圍的低灰階值，映射擴展到輸出中較寬的灰階區間；同時壓縮高灰階值。常用於壓縮光譜的極大動態範圍（如傅立葉頻譜顯示）。
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-300">
+                            $$s = c \log(1 + r)$$
+                            <span class="text-[10px] text-slate-500 block mt-1">($c$ 為常數，比例化灰階範疇)</span>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-emerald-400 font-bold text-base">3. 冪律/Gamma 轉換</h4>
+                                <span class="bg-emerald-950 text-emerald-400 font-mono text-[10px] px-2 py-0.5 rounded">Power-Law</span>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                                透過改變 $\gamma$ 值進行對比度修正。$\gamma < 1$ 時能提升並發掘暗部細節（過暗補償）；$\gamma > 1$ 則能壓縮暗部並強化過曝、死白背景下的灰色特徵。
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-300">
+                            $$s = c \cdot r^{\gamma}$$
+                            <span class="text-[10px] text-slate-500 block mt-1">($\gamma < 1$ 拓寬暗部 / $\gamma > 1$ 壓縮暗部)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 glass p-6 rounded-2xl border border-emerald-500/20">
+                    <h4 class="text-emerald-400 font-bold text-sm mb-2">4. 直方圖等化 (Histogram Equalization, HE)</h4>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        直方圖等化是一種利用機率密度函數 (PDF) 與累積強度分佈 (CDF) 自適應調整對比度的全自動點運算。它能將不均勻或集中在特定灰階區間的原始影像直方圖，轉換為具有**均勻分佈 (Uniform Distribution)** 的直方圖，最大化整張影像的動態範圍與全局動態對比。
+                    </p>
+                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-300">
+                        $$s_k = T(r_k) = (L-1) \sum_{j=0}^{k} p_r(r_j) = \frac{L-1}{MN} \sum_{j=0}^{k} n_j$$
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-12">
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-sky-400 text-xl">🔍</span>
+                    <h3 class="text-xl font-bold text-white">二、 影像空間濾波 (Spatial Filtering)</h3>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass p-6 rounded-2xl border border-sky-500/20 hover:border-sky-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-sky-400 font-bold text-base">1. 平滑空間濾波器 (Smoothing / Lowpass)</h4>
+                            <span class="bg-sky-950 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded">模糊與降噪</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            利用遮罩模板核心 (Kernel) 與局部鄰域像素進行互相關 (Cross-correlation) 或卷積 (Convolution) 運算。主要功能是消除非必要的隨機高頻微小雜訊，或是移除小於核心範圍的無用物件特徵。
+                        </p>
+                        <div class="space-y-2 text-[11px] font-mono">
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                <div>
+                                    <span class="text-sky-300 font-semibold">● 線性盒狀濾波 (Box Filter)</span>
+                                    <p class="text-slate-400 mt-0.5">全遮罩權重皆為 $1/n$。能完全平均化鄰域強度，但容易造成邊緣嚴重模糊。</p>
+                                </div>
+                                <div class="text-slate-500 text-xs text-right whitespace-nowrap pl-2">$$1 \over 9$$ $\begin{bmatrix}1&1&1\\1&1&1\\1&1&1\end{bmatrix}$</div>
+                            </div>
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                <div>
+                                    <span class="text-sky-300 font-semibold">● 非線性中值濾波 (Median Filter)</span>
+                                    <p class="text-slate-400 mt-0.5">強制取鄰域排序後的「中間值」替代中心像素。能**完美消除椒鹽雜訊 (Salt & Pepper Noise)** 並良好保留物體邊緣，不產生多餘模糊。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-sky-500/20 hover:border-sky-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-sky-400 font-bold text-base">2. 銳化空間濾波器 (Sharpening / Highpass)</h4>
+                            <span class="bg-sky-950 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded">邊緣增強</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            利用空間微分原理，加強影像中的高頻分量（強度不連續處），使模糊的細微特徵、刮痕、邊緣重現清晰，便利後續定位量測。
+                        </p>
+                        <div class="space-y-2 text-[11px] font-mono">
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+                                <div>
+                                    <span class="text-sky-300 font-semibold">● 拉普拉斯算子 (Laplacian $\nabla^2$)</span>
+                                    <p class="text-slate-400 mt-0.5">基於二階微分的各向同性 (Isotropic) 銳化算子。能凸顯微小點、線與細部灰階突變，且與邊緣方向無關。</p>
+                                </div>
+                                <div class="text-slate-500 text-xs text-right whitespace-nowrap pl-2">$\begin{bmatrix}0&1&0\\1&-4&1\\0&1&0\end{bmatrix}$</div>
+                            </div>
+                            <div class="bg-slate-950/80 p-2 rounded-lg border border-slate-800">
+                                <span class="text-sky-300 font-semibold">● 反銳化遮罩與高提升濾波 (Unsharp Masking & Highboost)</span>
+                                <p class="text-slate-400 mt-0.5">公式：$g(x,y) = f(x,y) + k \cdot g_{mask}(x,y)$ ；其中 $g_{mask}$ 為原圖減去平滑模糊後的差異。$k=1$ 為反銳化遮罩；$k>1$ 稱為高提升濾波，在保持原圖亮度的情況下大幅增強邊緣對比度。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-12">
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-indigo-400 text-xl">🌐</span>
+                    <h3 class="text-xl font-bold text-white">三、 影像頻率濾波 (Frequency Domain Filtering)</h3>
+                </div>
+
+                <div class="glass p-6 rounded-2xl border border-indigo-500/20">
+                    <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                        將空間域影像 $f(x,y)$ 經由**二維離散傅立葉轉換 (2D DFT)** 映射至頻率域 $F(u,v)$。在頻率域中，影像的平滑背景與緩慢灰階變化對應到**低頻成分**，而雜訊、邊緣及細微線條細節則歸類於**高頻成分**。其核心計算流程為：$G(u,v) = H(u,v)F(u,v)$，再經由逆傅立葉轉換 (IDFT) 還原。
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-4 mt-2">
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-indigo-300 font-bold text-sm block mb-2">● 頻率域低通濾波器 (Lowpass Filters - 衰減高頻)</span>
+                            <ul class="list-disc list-inside space-y-2 text-[11px] text-slate-400">
+                                <li><strong class="text-slate-200">理想低通 (ILPF)：</strong> 建立絕對截斷頻率 $D_0$，會產生嚴重的**振鈴現象 (Ringing Effect)** 破壞畫質。</li>
+                                <li><strong class="text-slate-200">巴特沃斯低通 (BLPF)：</strong> 引入階數 $n$ 的轉折函數，過渡平滑，振鈴現象大幅削弱或不可見。
+                                    <div class="text-indigo-200 my-1 text-center font-mono">$H(u,v) = \frac{1}{1 + [D(u,v)/D_0]^{2n}}$</div>
+                                </li>
+                                <li><strong class="text-slate-200">高斯低通 (GLPF)：</strong> 完全依據高斯分佈曲線平滑衰減，**完全沒有任何振鈴現象**，常用於高級精密的影像平滑與降噪。
+                                    <div class="text-indigo-200 my-1 text-center font-mono">$H(u,v) = e^{-D^2(u,v)/2D_0^2}$</div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-indigo-300 font-bold text-sm block mb-2">● 頻率域高通濾波器 (Highpass Filters - 衰減低頻)</span>
+                            <p class="text-[11px] text-slate-400 leading-relaxed mb-2">
+                                透過對低通濾波器取補集方式取得，即 $H_{HP}(u,v) = 1 - H_{LP}(u,v)$。其功能為削弱背景低頻成分，全面留存並強化邊緣高頻分量。
+                            </p>
+                            <ul class="list-disc list-inside space-y-2 text-[11px] text-slate-400">
+                                <li><strong class="text-slate-200">理想高通 (IHPF)：</strong> 超過 $D_0$ 的頻率完全通過，波形邊緣會引發鋸齒狀與振鈴波紋。</li>
+                                <li><strong class="text-slate-200">巴特沃斯高通 (BHPF)：</strong> 對對比線條有良好、乾淨的增強邊緣效果。
+                                    <div class="text-indigo-200 my-1 text-center font-mono">$H(u,v) = \frac{1}{1 + [D_0/D(u,v)]^{2n}}$</div>
+                                </li>
+                                <li><strong class="text-slate-200">高斯高通 (GHPF)：</strong> 漸進高斯邊緣增強，所獲得的微弱特徵輪廓邊界非常平滑。
+                                    <div class="text-indigo-200 my-1 text-center font-mono">$H(u,v) = 1 - e^{-D^2(u,v)/2D_0^2}$</div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section x-show="page === 'post-processing'" x-cloak x-transition:enter="transition ease-out duration-500">
+            <div class="flex items-center space-x-4 mb-10">
+                <h2 class="text-3xl font-bold">影像後處理與演算法技術</h2>
+                <div class="h-[1px] flex-grow bg-slate-800"></div>
+                <span class="text-purple-500 font-mono">03 / ALGORITHM_B</span>
+            </div>
+
+            <div class="mb-12">
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-purple-400 text-xl">✂️</span>
+                    <h3 class="text-xl font-bold text-white">一、 影像分割技術 (Image Segmentation)</h3>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-purple-400 font-bold text-base">1. 像素分割依據與門檻化基礎</h4>
+                            <span class="bg-purple-950 text-purple-400 font-mono text-[10px] px-2 py-0.5 rounded">Thresholding</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            影像分割旨在將影像細分成具備物理意義的獨立區域。其演算法建立在像素的兩大基本特性：**不連續性**（如邊緣偵測、梯度變化）與**相似性**（如區域生長、門檻化）。
+                        </p>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400">
+                            <span class="text-purple-300 font-semibold block mb-1">門檻化分類：</span>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong class="text-slate-200">整體門檻化 (Global)：</strong> 全圖採用單一固定門檻 $T$。公式：$g(x,y) = 1 \text{ if } f(x,y) > T \text{ else } 0$。</li>
+                                <li><strong class="text-slate-200">局部/動態門檻化 (Local/Dynamic)：</strong> 門檻值隨區域特性或空間座標 $(x,y)$ 進行動態修正，能有效克服光照不均或反射干擾。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-purple-400 font-bold text-base">2. Otsu 大津自動門檻最佳化</h4>
+                            <span class="bg-purple-950 text-purple-400 font-mono text-[10px] px-2 py-0.5 rounded">Otsu's Method</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            大津演算法是一種針對雙峰灰階直方圖影像的**最佳自動門檻選取技術**。其核心思想是尋找一個最佳門檻值 $T$，使得分割出的兩群（前景 $C_1$ 與背景 $C_2$）之間的**群間方差 (Between-Class Variance)** 達到最大化。
+                        </p>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs font-mono">
+                            <div class="text-purple-300 font-semibold mb-1">數學尋優核心目標函數：</div>
+                            <div class="text-center text-purple-200 my-2 text-xs">
+                                $$\sigma_B^2(T) = P_1(T)P_2(T)[\mu_1(T) - \mu_2(T)]^2$$
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1">其中 $P_1, P_2$ 為兩群發生機率，$\mu_1, \mu_2$ 為各自的灰階平均強度。遍歷灰階階度，使 $\sigma_B^2$ 最大者即為最佳解。</p>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-purple-400 font-bold text-base">3. 區域成長演算法</h4>
+                            <span class="bg-purple-950 text-purple-400 font-mono text-[10px] px-2 py-0.5 rounded">Region Growing</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            屬於以像素**相似性**為基礎的分割技術。從一個或數個「種子點」出發，檢驗其鄰近像素（四連通或八連通），依據預設的相似性準則（如強度差值、紋理、標準差區間）將符合性質的像素併入該區域。
+                        </p>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 font-mono">
+                            <span class="text-purple-300 font-semibold block mb-1">操作流程：</span>
+                            輸入 $f(x,y)$ ➡️ 設定種子點 $S_{xy}$ ➡️ 定義相似性述詞 $Q$ ➡️ 迭代聚合相鄰像素 ➡️ 無像素滿足條件時觸發終止原則。相較於雙門檻值分割，更能在焊接瑕疵偵測中分割出完整的病灶範圍。
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-purple-400 font-bold text-base">4. 區域分裂與合併</h4>
+                            <span class="bg-purple-950 text-purple-400 font-mono text-[10px] px-2 py-0.5 rounded">Split & Merge</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            此方法不需一開始指定種子點，而是將全圖視為單一區域，利用**四分樹 (Quadtree) 遞迴結構**進行處理：
+                        </p>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400">
+                            <ul class="list-decimal list-inside space-y-1 text-[11px]">
+                                <li>評估目前區域的均質性述詞 $Q$，若不滿足（即內部特徵不均勻），則直接將該區域**等分成四個象限子區域**。</li>
+                                <li>遞迴分裂至設定的最小區域邊界（如 $8 \times 8$ 或 $3 \times 3$）。</li>
+                                <li>檢視全圖相鄰的相異子區域，若彼此融合後能滿足述詞 $Q$，則執行**合併 (Merge)**，直到無法再進行任何合併為止。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-12">
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-fuchsia-400 text-xl">🧬</span>
+                    <h3 class="text-xl font-bold text-white">二、 數學形態學處理 (Mathematical Morphology)</h3>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass p-6 rounded-2xl border border-fuchsia-500/20 hover:border-fuchsia-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-fuchsia-400 font-bold text-base">1. 結構元素與基礎算子（侵蝕、膨脹）</h4>
+                            <span class="bg-fuchsia-950 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded">Erosion & Dilation</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            形態學是擷取影像幾何形狀特徵的強大工具。它結合了集合理論，利用一個被稱為**結構元素 (Structuring Element, B)** 的小型探針矩陣去掃描並匹配輸入影像 $A$。
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-[11px] font-mono">
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-fuchsia-300 font-bold">● 侵蝕 (Erosion $\ominus$)</span>
+                                <p class="text-slate-400 mt-1">結構元素 $B$ 的 1值完全囊括在 $A$ 內部方標記 1。效果使影像**收縮**，可用於消除細微毛刺、孤立雜訊。</p>
+                                <div class="text-center text-fuchsia-200 mt-1">$A \ominus B = \{z \mid (B)_z \subseteq A\}$</div>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-fuchsia-300 font-bold">● 膨脹 (Dilation $\oplus$)</span>
+                                <p class="text-slate-400 mt-1">結構元素 $B$ 與 $A$ 有任何交集即標記 1。效果使影像**擴張**，可用於填補細小孔洞、連接斷裂特徵。</p>
+                                <div class="text-center text-fuchsia-200 mt-1">$A \oplus B = \{z \mid (\hat{B})_z \cap A \neq \emptyset\}$</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-fuchsia-500/20 hover:border-fuchsia-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-fuchsia-400 font-bold text-base">2. 進階複合算子（斷開、閉合）</h4>
+                            <span class="bg-fuchsia-950 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded">Opening & Closing</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                            透過基礎的侵蝕與膨脹以不同的先後順序串聯，能組合成具備幾何特性的進階濾波器，且能保持物件原本的大體積外觀不變：
+                        </p>
+                        <div class="space-y-3 text-[11px] font-mono">
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-fuchsia-300 font-bold">● 斷開運算 (Opening $\circ$) ➡️ 先侵蝕、後膨脹</span>
+                                <div class="text-fuchsia-200 my-1">$$A \circ B = (A \ominus B) \oplus B$$</div>
+                                <p class="text-slate-400">用以消除微小突起、斷開纖細的搭接、平滑物件的外部邊緣輪廓。</p>
+                            </div>
+                            <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                                <span class="text-fuchsia-300 font-bold">● 閉合運算 (Closing $\bullet$) ➡️ 先膨脹、後侵蝕</span>
+                                <div class="text-fuchsia-200 my-1">$$A \bullet B = (A \oplus B) \ominus B$$</div>
+                                <p class="text-slate-400">用以排除狹長裂縫、橋接細小溝壑、填補前景邊界內部的空洞。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-fuchsia-500/20 hover:border-fuchsia-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-fuchsia-400 font-bold text-base">3. 交離運算轉換 (Hit-or-Miss)</h4>
+                            <span class="bg-fuchsia-950 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded">Hit-or-Miss Transform</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            交離轉換是進行**形狀偵測與特定圖案識別**的核心工具。其邏輯是同時去尋找影像中「匹配目標前景」與「匹配外部背景」的雙重結構特徵。
+                        </p>
+                        <p class="text-xs text-slate-400 mb-3 font-mono">
+                            定義一組結構元素組合 $B = (B_1, B_2)$，其中 $B_1$ 為我們想尋找的目標形狀特徵，而 $B_2$ 則為包圍在目標周圍的背景視窗區間。
+                        </p>
+                        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs font-mono">
+                            <span class="text-fuchsia-300 font-semibold block mb-1">集合運算公式：</span>
+                            <div class="text-center text-fuchsia-200 my-1">
+                                $$A \circledast B = (A \ominus B_1) \cap (A^c \ominus B_2)$$
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">即「原圖與 $B_1$ 侵蝕的結果」交集「原圖補集與 $B_2$ 侵蝕的結果」。常用於多重形狀混合晶片（如 IC 打線）中定位單一特定圖案。</p>
+                        </div>
+                    </div>
+
+                    <div class="glass p-6 rounded-2xl border border-fuchsia-500/20 hover:border-fuchsia-500/40 transition-all">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="text-fuchsia-400 font-bold text-base">4. 實際形態學應用演算法</h4>
+                            <span class="bg-fuchsia-950 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded">Applications</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            透過上述基本算子的有機組合，形態學在工業後處理中可直接實現極具價值的進階空間處理：
+                        </p>
+                        <div class="space-y-2 text-[11px] font-mono">
+                            <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800">
+                                <strong class="text-fuchsia-300">● 輪廓邊界萃取 (Boundary Extraction)：</strong>
+                                <p class="text-slate-400 mt-0.5">原影像減去侵蝕後的影像，即可剝離內部，僅留下精準的外圍線條。</p>
+                                <div class="text-fuchsia-200 mt-0.5 text-center">$\beta(A) = A - (A \ominus B)$</div>
+                            </div>
+                            <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800">
+                                <strong class="text-fuchsia-300">● 區域填補 (Hole Filling)：</strong>
+                                <p class="text-slate-400 mt-0.5">指定孔洞內部任意種子點 $X_0$，利用結構元素進行迭代膨脹，並以原圖補集 $A^c$ 為邊界進行交集局限，直至結果不再改變，最後與原圖求聯集即可完美填平內部封閉空洞。</p>
+                                <div class="text-fuchsia-200 mt-0.5 text-center">$X_k = (X_{k-1} \oplus B) \cap A^c$</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-12">
+        <div class="flex items-center space-x-2 mb-6">
+            <span class="text-emerald-400 text-xl">📐</span>
+            <h3 class="text-xl font-bold text-white">三、 影像外形特徵表示與描述 (Shape Representation & Description)</h3>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="glass p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                    <h4 class="text-emerald-400 font-bold text-base">1. 鏈碼 (Chain Code) 與多邊形逼近</h4>
+                    <span class="bg-emerald-950 text-emerald-400 font-mono text-[10px] px-2 py-0.5 rounded">Representation</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                    鏈碼透過特定方向（四或八方向）的固定長度線段串聯，精準描述輪廓。為達到不變性，常透過循環移位取最小整數、改用相對方向碼進行編碼。
+                </p>
+                <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-400">
+                    <ul class="list-disc list-inside space-y-1 text-[11px]">
+                        <li><strong class="text-slate-200">多邊形逼近：</strong> 運用漸進分割法，重複以二分法分割輪廓段落，或找出長軸後進行垂直軸切分，直至無法分割。</li>
+                        <li><strong class="text-slate-200">特徵分佈：</strong> 將 2D 輪廓轉換為 1D 函數（距離函數），描述中心點至邊界點的分佈差異。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                    <h4 class="text-emerald-400 font-bold text-base">2. 邊界與區域描述子 (Descriptors)</h4>
+                    <span class="bg-emerald-950 text-emerald-400 font-mono text-[10px] px-2 py-0.5 rounded">Descriptors</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                    描述子提供量化數據以利辨識。**傅立葉描述子**將輪廓座標視為複數，透過 DFT 轉換，取低頻係數描述物體粗略形狀。區域統計則包含面積、周長、緊湊性等指標。
+                </p>
+                <div class="grid md:grid-cols-2 gap-6">
+            <div class="glass p-6 rounded-2xl border border-emerald-500/20">
+                <h4 class="text-emerald-400 font-bold mb-3">統計紋理：n次方力矩分析</h4>
+                <p class="text-xs text-slate-300 mb-3">透過力矩分析灰階分佈 $p(z)$，能將複雜的紋理量化為統計參數：</p>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] font-mono text-emerald-200 mb-2">
+                    $$\mu_n(z) = \sum_{i=0}^{L-1} (z_i - m)^n p(z_i)$$
+                </div>
+                <ul class="text-[10px] text-slate-400 list-disc list-inside space-y-1">
+                    <li><strong class="text-slate-200">變異數 ($n=2$)：</strong> 定義對比度，數值愈大紋理愈粗糙。</li>
+                    <li><strong class="text-slate-200">偏態 ($n=3$)：</strong> 反映亮度分佈的對稱性與偏向。</li>
+                    <li><strong class="text-slate-200">峰態 ($n=4$)：</strong> 描述灰階分佈的尖銳度，用於辨識紋理的離散分布。</li>
+                </ul>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-12">
+        <div class="flex items-center space-x-2 mb-6">
+            <span class="text-cyan-400 text-xl">🎯</span>
+            <h3 class="text-xl font-bold text-white">四、 影像匹配技術 (Image Matching)</h3>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+    <div class="glass p-6 rounded-2xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all">
+        <div class="flex justify-between items-start mb-3">
+            <h4 class="text-cyan-400 font-bold text-base">1. 模板匹配 (NCC)</h4>
+            <span class="bg-cyan-950 text-cyan-400 font-mono text-[10px] px-2 py-0.5 rounded">Intensity-Based</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            NCC (正規化互相關) 屬於灰階強度的相關性比對。透過減去平均值與除以標準差，使其對整體的亮度平移或比例縮放具有不變性，適合穩定的工業環境定位。
+        </p>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs font-mono">
+            <div class="text-cyan-300 font-semibold mb-1">NCC 相關係數公式：</div>
+            <div class="text-[10px] text-cyan-100 overflow-x-auto whitespace-nowrap">
+                $$NCC(u,v) = \frac{\sum [I(x,y) - \mu_I] \cdot [T(x-u,y-v) - \mu_T]}{\sigma_I \cdot \sigma_T}$$
+            </div>
+        </div>
+    </div>
+
+        <div class="glass p-6 rounded-2xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all">
+            <div class="flex justify-between items-start mb-3">
+                <h4 class="text-cyan-400 font-bold text-base">2. 形狀特徵匹配 (SBM)</h4>
+                <span class="bg-cyan-950 text-cyan-400 font-mono text-[10px] px-2 py-0.5 rounded">Shape-Based</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                SBM 捨棄強度比對，改用「梯度方向」表示輪廓。透過提取物件輪廓點的梯度向量 $d_i = (t_i, u_i)^T$，計算模型與影像間的相似度，對光照、紋理變化具有極佳的強健性。
+            </p>
+            <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs font-mono">
+                <div class="text-cyan-300 font-semibold mb-1">SBM 相似度目標函數：</div>
+                <div class="text-[10px] text-cyan-100 overflow-x-auto whitespace-nowrap">
+                    $$S(x,y) = \frac{1}{N} \sum_{i=1}^{N} \frac{|\vec{v}_{model} \cdot \vec{v}_{image}|}{|\vec{v}_{model}| \cdot |\vec{v}_{image}|}$$
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">其中 $\vec{v}$ 為影像邊緣點的梯度向量，累加所有匹配點的向量夾角餘弦值，數值愈接近 1 代表形狀匹配程度愈高。</p>
+            </div>
+        </div>
+    </div>
+            <div class="glass p-6 rounded-2xl border border-cyan-500/20 hover:border-cyan-500/40 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                    <h4 class="text-cyan-400 font-bold text-base">3. 點特徵匹配 (Feature Matching)</h4>
+                    <span class="bg-cyan-950 text-cyan-400 font-mono text-[10px] px-2 py-0.5 rounded">SIFT / Corner</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                    點特徵需具備「可重複性」、「獨特性」與「可靠性」。透過角點偵測（尋找視窗位移後強度劇烈變化點）或 SIFT 進行多尺度特徵轉換。
+                </p>
+                <div class="glass p-6 rounded-2xl border border-cyan-500/20">
+                    <h4 class="text-cyan-400 font-bold mb-3">SIFT：多尺度微分幾何算子</h4>
+                    <p class="text-xs text-slate-300 mb-3">SIFT 透過尺度空間理論，確保特徵在不同視角下的不變性：</p>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] font-mono text-cyan-200 mb-2">
+                    $$D(x, y, \sigma) = L(x, y, k\sigma) - L(x, y, \sigma)$$
+                </div>
+                <ul class="text-[10px] text-slate-400 space-y-1">
+                    <li><strong class="text-cyan-200">尺度空間：</strong> 透過高斯模糊 $G(x,y,\sigma) * I(x,y)$ 模擬觀察者的不同距離。</li>
+                    <li><strong class="text-cyan-200">極值精細化：</strong> 偵測極值後，使用三維 Taylor 展開式進行子像素插值與修正，排除不穩定特徵點。</li>
+                    <li><strong class="text-cyan-200">邊緣消除：</strong> 利用 Hessian 矩陣比例，剔除響應過強的邊緣點，留下具獨特性的斑點特徵。</li>
+                </ul>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+        </section>
+
+        <section x-show="page === 'project'" x-cloak x-transition:enter="transition ease-out duration-500">
+            <div class="flex items-center space-x-4 mb-10">
+                <h2 class="text-3xl font-bold">期末專題報告</h2>
+                <div class="h-[1px] flex-grow bg-slate-800"></div>
+                <span class="text-pink-500 font-mono">04 / APPLICATION</span>
+            </div>
+            <div id="controls">
+                <button id="prev">上一頁</button>
+                <span id="info" style="color:#fff;"></span>
+                <button id="next">下一頁</button>
+            </div>
+            <canvas id="canvas"></canvas>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+            <script>
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+                // 【修正 1】只保留真正的檔案 ID
+                const REAL_FILE_ID = '12jNlmfhUR0r15dUU9-paf7X1Lp2IV0qF'; 
+                
+                // 【修正 2】使用直連或透過代理，這裡先修正為標準下載格式
+                const url = `https://drive.google.com/uc?export=download&id=${REAL_FILE_ID}`;
+
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                let pdf = null, pageNum = 1, total = 0;
+
+                async function render() {
+                    try {
+                        const page = await pdf.getPage(pageNum);
+                        const vp = page.getViewport({ scale: 1.5 });
+                        canvas.height = vp.height;
+                        canvas.width = vp.width;
+                        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+                        document.getElementById('info').textContent = `${pageNum} / ${total}`;
+                    } catch (err) {
+                        console.error("渲染頁面失敗:", err);
+                    }
+                }
+
+                // 增加 catch 來捕捉錯誤，方便你在控制台查看原因
+                pdfjsLib.getDocument(url).promise.then(doc => {
+                    pdf = doc;
+                    total = doc.numPages;
+                    render();
+                }).catch(err => {
+                    console.error("讀取 PDF 檔案失敗，通常是 CORS 阻擋或 ID 錯誤。詳細錯誤資訊：", err);
+                });
+
+                document.getElementById('prev').onclick = () => {
+                    if (pageNum > 1) { pageNum--; render(); }
+                };
+                document.getElementById('next').onclick = () => {
+                    if (pageNum < total) { pageNum++; render(); }
+                };
+
+                document.onkeydown = (e) => {
+                    if (e.key === 'ArrowLeft') document.getElementById('prev').click();
+                    if (e.key === 'ArrowRight') document.getElementById('next').click();
+                };
+            </script>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-10 border-t border-slate-900">
+        <p class="text-slate-600 text-xs tracking-widest font-mono">© 2026 MACHINE VISION COURSEWORK | DESIGNED BY 余以則</p>
+    </footer >
+
+</body>
+</html>
